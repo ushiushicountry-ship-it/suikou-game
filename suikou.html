@@ -1,0 +1,424 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>推敲リズムバトル</title>
+
+<style>
+body {
+    font-family: sans-serif;
+    background: #f1e9dc;
+    text-align: center;
+    padding: 25px;
+}
+
+.game {
+    background: white;
+    max-width: 650px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px #0002;
+}
+
+h1 {
+    color: #8b3028;
+}
+
+#kanYu {
+    font-size: 85px;
+    margin: 10px;
+}
+
+#speech {
+    font-size: 28px;
+    font-weight: bold;
+    color: #8b3028;
+    min-height: 45px;
+    margin: 20px;
+}
+
+#message {
+    font-size: 20px;
+    min-height: 30px;
+}
+
+.status {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    font-size: 19px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+button {
+    font-size: 23px;
+    padding: 15px 30px;
+    margin: 10px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+#push {
+    background: #e8b85c;
+}
+
+#knock {
+    background: #82b6d9;
+}
+
+#start {
+    background: #8b3028;
+    color: white;
+}
+
+#judge {
+    font-size: 28px;
+    font-weight: bold;
+    min-height: 35px;
+    color: #d18b19;
+}
+
+#hearts {
+    color: #d94343;
+}
+
+#level {
+    color: #2673a5;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<h1>推敲リズムバトル</h1>
+
+<p>韓愈の意見を聞いて、同じボタンを押せ！</p>
+
+<div id="kanYu">👨‍🦳</div>
+
+<div id="speech">準備はよいか？</div>
+
+<div id="message">
+リズムに乗って韓愈の意見に賛同しよう！
+</div>
+
+<div class="status">
+    <span>得点：<span id="score">0</span></span>
+    <span>コンボ：<span id="combo">0</span></span>
+    <span id="hearts">体力：❤️❤️❤️</span>
+    <span id="level">Lv.1</span>
+</div>
+
+<div id="judge"></div>
+
+<button id="push" onclick="answer('推す')" disabled>
+推す
+</button>
+
+<button id="knock" onclick="answer('敲く')" disabled>
+敲く
+</button>
+
+<br>
+
+<button id="start" onclick="startGame()">
+ゲームスタート
+</button>
+
+<p>操作方法：ボタンを押すか、キーボードの A・L を押そう！</p>
+
+</div>
+
+<script>
+
+let current = "";
+let score = 0;
+let combo = 0;
+let life = 3;
+let beat = 0;
+let level = 1;
+let playing = false;
+let answered = false;
+
+let answerTimer;
+let nextTimer;
+let limit;
+let startTime;
+
+// ゲーム開始
+function startGame() {
+
+    clearTimeout(answerTimer);
+    clearTimeout(nextTimer);
+
+    score = 0;
+    combo = 0;
+    life = 3;
+    beat = 0;
+    level = 1;
+    playing = true;
+
+    document.getElementById("score").textContent = score;
+    document.getElementById("combo").textContent = combo;
+    document.getElementById("hearts").textContent = "体力：❤️❤️❤️";
+    document.getElementById("level").textContent = "Lv.1";
+
+    document.getElementById("kanYu").textContent = "👨‍🦳";
+    document.getElementById("speech").textContent = "3！";
+    document.getElementById("message").textContent = "準備せよ！";
+    document.getElementById("judge").textContent = "";
+
+    document.getElementById("start").disabled = true;
+
+    document.getElementById("push").disabled = true;
+    document.getElementById("knock").disabled = true;
+
+    let count = 2;
+
+    function countdown() {
+
+        if (count > 0) {
+            document.getElementById("speech").textContent = count + "！";
+            count--;
+            nextTimer = setTimeout(countdown, 700);
+        } else {
+            nextTurn();
+        }
+
+    }
+
+    nextTimer = setTimeout(countdown, 700);
+}
+
+// 韓愈の発言
+function nextTurn() {
+
+    if (!playing) return;
+
+    answered = false;
+
+    // 韓愈の提案をランダムに決める
+    current = Math.random() < 0.5 ? "推す" : "敲く";
+    beat++;
+
+    // 8コンボごとに難易度アップ
+    level = Math.floor(combo / 8) + 1;
+
+    limit = Math.max(500, 1100 - (level - 1) * 120);
+
+    document.getElementById("level").textContent =
+        "Lv." + level;
+
+    document.getElementById("speech").textContent =
+        "「" + current + "」がいいと思う！";
+
+    document.getElementById("message").textContent =
+        "韓愈の意見に賛同せよ！";
+
+    document.getElementById("judge").textContent = "";
+
+    document.getElementById("kanYu").textContent = "👨‍🦳";
+
+    document.getElementById("push").disabled = false;
+    document.getElementById("knock").disabled = false;
+
+    startTime = Date.now();
+
+    // 制限時間を過ぎたらミス
+    answerTimer = setTimeout(function() {
+
+        if (!answered && playing) {
+            miss("時間切れ！");
+        }
+
+    }, limit);
+
+}
+
+// 回答
+function answer(choice) {
+
+    if (!playing || answered) return;
+
+    answered = true;
+    clearTimeout(answerTimer);
+
+    if (choice === current) {
+
+        combo++;
+
+        let elapsed = Date.now() - startTime;
+
+        let point;
+
+        if (elapsed <= 300) {
+            point = 100;
+            document.getElementById("judge").textContent = "PERFECT!!";
+        } else if (elapsed <= 650) {
+            point = 70;
+            document.getElementById("judge").textContent = "GOOD!";
+        } else {
+            point = 50;
+            document.getElementById("judge").textContent = "OK!";
+        }
+
+        // コンボボーナス
+        point += Math.min(combo * 5, 50);
+
+        score += point;
+
+        document.getElementById("score").textContent = score;
+        document.getElementById("combo").textContent = combo;
+
+        document.getElementById("message").textContent =
+            "見事じゃ！その調子！";
+
+        document.getElementById("kanYu").textContent = "😄";
+
+        document.getElementById("push").disabled = true;
+        document.getElementById("knock").disabled = true;
+
+        // 5000ポイント到達で特別エンディング
+        if (score >= 5000) {
+            gameClear();
+            return;
+        }
+
+        // 次の発言までの間隔
+        nextTimer = setTimeout(nextTurn, 400);
+
+    } else {
+
+        miss("違う意見じゃ！");
+    }
+
+}
+
+// ミスしたとき
+function miss(reason) {
+
+    if (!playing) return;
+
+    answered = true;
+    clearTimeout(answerTimer);
+
+    life--;
+    combo = 0;
+
+    document.getElementById("combo").textContent = combo;
+
+    let hearts = "体力：";
+
+    for (let i = 0; i < life; i++) {
+        hearts += "❤️";
+    }
+
+    document.getElementById("hearts").textContent = hearts;
+
+    document.getElementById("kanYu").textContent = "😡";
+
+    document.getElementById("judge").textContent = "MISS!";
+
+    document.getElementById("message").textContent =
+        "韓愈「" + reason + " 何をしておる！」";
+
+    document.getElementById("push").disabled = true;
+    document.getElementById("knock").disabled = true;
+
+    if (life <= 0) {
+
+        gameOver();
+
+    } else {
+
+        nextTimer = setTimeout(nextTurn, 900);
+
+    }
+
+}
+
+// ゲームオーバー
+function gameOver() {
+
+    playing = false;
+
+    clearTimeout(answerTimer);
+    clearTimeout(nextTimer);
+
+    document.getElementById("kanYu").textContent = "🤬";
+
+    document.getElementById("speech").textContent =
+        "韓愈「どっちの表現でもこの詩はだめじゃ！」";
+
+    document.getElementById("message").textContent =
+        "ゲームオーバー！ 最終得点：" + score;
+
+    document.getElementById("judge").textContent =
+        "最高コンボ：" + combo;
+
+    document.getElementById("push").disabled = true;
+    document.getElementById("knock").disabled = true;
+
+    document.getElementById("start").disabled = false;
+    document.getElementById("start").textContent = "もう一度挑戦";
+
+}
+
+// 5000ポイント到達時の特別エンディング
+function gameClear() {
+
+    playing = false;
+
+    clearTimeout(answerTimer);
+    clearTimeout(nextTimer);
+
+    document.getElementById("kanYu").textContent = "😊";
+
+    document.getElementById("speech").textContent =
+        "韓愈「やはり君は私と詩に関する意見が合うようだな。君のことは覚えておくとしよう。」";
+
+    document.getElementById("message").textContent =
+        "ゲームクリア！ 最終得点：" + score;
+
+    document.getElementById("judge").textContent =
+        "最高コンボ：" + combo + "　完全勝利！";
+
+    document.getElementById("push").disabled = true;
+    document.getElementById("knock").disabled = true;
+
+    document.getElementById("start").disabled = false;
+    document.getElementById("start").textContent = "もう一度挑戦";
+
+}
+
+// キーボード操作
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "a" || event.key === "A") {
+        answer("推す");
+    }
+
+    if (event.key === "l" || event.key === "L") {
+        answer("敲く");
+    }
+
+});
+
+</script>
+
+</body>
+</html>
